@@ -18,6 +18,10 @@ const userCourse=new mongoose.Schema({
     password:{
         type:String,
         require:true
+    },
+    token:{
+        type:String,
+        default:""
     }
 })
 module.exports=mongoose.model('User',userCourse);

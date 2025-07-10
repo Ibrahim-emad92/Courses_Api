@@ -1,14 +1,16 @@
 
 
 const userModel=require('../models/user.model');
-
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const generateJWT = require('../utils/generate.JWT');
 const getAllUsers=async(req,res)=>{
     const query=req.query;
     const limit=query.limit||10;    
     const page=query.page||1;
     const skip=(page-1)*limit;  
     
-    const users=await userModel.find().limit(limit).skip(skip);
+    const users=await userModel.find({},{"password":false}).limit(limit).skip(skip);
     res.json({status:"success",data:{users}});
 }
 
@@ -21,12 +23,15 @@ const RegisterUser=async(req,res)=>{
     if(existingUser){
         return res.status(400).json({status:"Error",msg:"User already exists"});
     }       
+    const hashedPassword = await bcrypt.hash(password, 10);
     const newUser=new userModel({
         firstName,
         lastName,
         email,
-        password
+        password: hashedPassword
     });
+    const token=generateJWT({id:newUser._id,email:newUser.email}); 
+    newUser.token = token; 
     await newUser.save();
     res.status(201).json({status:"success",msg:"User registered successfully",data:{user:newUser}});
 
@@ -40,7 +45,8 @@ const LoginUser=async(req,res)=>{
     if(!user){
         return res.status(401).json({status:"Error",msg:"Invalid email or password"});
     }
-    res.status(200).json({status:"success",msg:"Login successful",data:{user}});
+    const token = generateJWT({id:user._id,email:user.email});
+    res.status(200).json({status:"success",msg:"Login successful",data:{token}});
 }
 module.exports={
     getAllUsers,
